@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with PostGIS
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: taxi-bot-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taxi_bot
+      POSTGRES_USER: taxibot
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-taxibot_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taxibot -d taxi_bot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # The bot application
+  bot:
+    build: .
+    container_name: taxi-bot-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DATABASE_URL: postgresql://taxibot:${DB_PASSWORD:-taxibot_dev_password}@db:5432/taxi_bot
+      ADMIN_IDS: ${ADMIN_IDS}
+      SEARCH_RADIUS_KM: ${SEARCH_RADIUS_KM:-10}
+      MAX_RESULTS: ${MAX_RESULTS:-10}
+      LOCATION_EXPIRY_HOURS: ${LOCATION_EXPIRY_HOURS:-1}
+      ADMIN_PORT: 3000
+      ADMIN_SECRET: ${ADMIN_SECRET:-change_this}
+    ports:
+      - "3000:3000"
+
+  # Adminer — lightweight DB admin UI for debugging & test verification
+  # Access at http://localhost:8080
+  # Not included in production deployment (see docker-compose.prod.yml)
+  adminer:
+    image: adminer:4
+    container_name: taxi-bot-adminer
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+      ADMINER_DESIGN: pepa-linha-dark
+
+volumes:
+  pgdata:

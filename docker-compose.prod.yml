@@ -1,0 +1,37 @@
+version: '3.8'
+
+# Production compose — no Adminer, no debug tooling
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: taxi-bot-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taxi_bot
+      POSTGRES_USER: taxibot
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taxibot -d taxi_bot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  bot:
+    build: .
+    container_name: taxi-bot-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DATABASE_URL: postgresql://taxibot:${DB_PASSWORD}@db:5432/taxi_bot
+      ADMIN_IDS: ${ADMIN_IDS}
+      SEARCH_RADIUS_KM: ${SEARCH_RADIUS_KM:-10}
+      MAX_RESULTS: ${MAX_RESULTS:-10}
+      LOCATION_EXPIRY_HOURS: ${LOCATION_EXPIRY_HOURS:-1}
+
+volumes:
+  pgdata:
