@@ -278,6 +278,250 @@ Delivered: 12 | Failed: 1
 
 ---
 
+## Testing Guide
+
+### Prerequisites
+
+- Docker Compose running (`docker compose up -d`)
+- At least one Telegram account for the admin/driver role
+- A second Telegram account (or ask a friend) for the rider role
+- Adminer open at `http://localhost:8080` for database verification
+
+---
+
+### Test Seed Data
+
+To test rider search without needing real drivers at real GPS coordinates, insert mock drivers directly into the database. Open Adminer → **SQL command** tab and run:
+
+```sql
+INSERT INTO drivers (
+  telegram_id, name, phone, vehicle_type, seats, vehicle_number,
+  status, location, location_updated_at, location_share_started_at,
+  is_approved, is_enabled, referral_code
+) VALUES
+  -- 0.4 km north of Colombo Fort (6.9355, 79.8503)
+  (1000000001, 'Sunil Perera',  '+94711000001', 'car', 4, 'CAB-1001',
+   'available',
+   ST_MakePoint(79.8503, 6.9355)::geography, NOW(), NOW(),
+   true, true, 'seed0001'),
+
+  -- 1.1 km away
+  (1000000002, 'Kasun Silva',   '+94711000002', 'tuk', 3, 'TUK-2002',
+   'available',
+   ST_MakePoint(79.8580, 6.9310)::geography, NOW(), NOW(),
+   true, true, 'seed0002'),
+
+  -- 2.3 km away
+  (1000000003, 'Priya Fernando','+94711000003', 'van', 6, 'VAN-3003',
+   'available',
+   ST_MakePoint(79.8650, 6.9200)::geography, NOW(), NOW(),
+   true, true, 'seed0003'),
+
+  -- 4.8 km away
+  (1000000004, 'Nimal Jayawardena','+94711000004', 'suv', 5, 'SUV-4004',
+   'available',
+   ST_MakePoint(79.8900, 6.9100)::geography, NOW(), NOW(),
+   true, true, 'seed0004'),
+
+  -- 8.9 km away — near the search radius edge (default 10 km)
+  (1000000005, 'Roshan de Mel', '+94711000005', 'car', 4, 'CAB-5005',
+   'busy',
+   ST_MakePoint(79.9300, 6.8800)::geography, NOW(), NOW(),
+   true, true, 'seed0005'),
+
+  -- Unapproved — must NOT appear in search
+  (1000000006, 'Pending Driver', '+94711000006', 'car', 4, 'CAB-6006',
+   'available',
+   ST_MakePoint(79.8510, 6.9350)::geography, NOW(), NOW(),
+   false, true, 'seed0006'),
+
+  -- Offline — must NOT appear in search
+  (1000000007, 'Offline Driver', '+94711000007', 'tuk', 2, 'TUK-7007',
+   'offline',
+   ST_MakePoint(79.8520, 6.9340)::geography, NOW(), NOW(),
+   true, true, 'seed0007')
+ON CONFLICT (telegram_id) DO NOTHING;
+```
+
+> The coordinates above are centred around Colombo Fort, Sri Lanka. To use your own area, replace `79.8503, 6.9355` with your `longitude, latitude` and adjust the offsets for the other drivers.
+
+**To keep seed data fresh** (prevent expiry):
+```sql
+UPDATE drivers
+SET location_updated_at = NOW(), location_share_started_at = NOW()
+WHERE telegram_id BETWEEN 1000000001 AND 1000000007;
+```
+
+**To remove seed data:**
+```sql
+DELETE FROM drivers WHERE telegram_id BETWEEN 1000000001 AND 1000000007;
+```
+
+---
+
+### Stage 1 — Basic Bot Setup
+
+1. Send `/start` to the bot
+2. ✅ Two buttons appear: **🚗 I am a Driver** and **🙋 I am a Rider**
+3. Tap **I am a Rider** → ✅ rider menu with **🔍 Find Drivers** appears
+4. Send `/start` again, tap **I am a Driver** → ✅ registration flow begins (name prompt)
+
+**DB check:**
+```sql
+SELECT * FROM riders;
+-- One row should appear after tapping "I am a Rider"
+```
+
+---
+
+### Stage 2 — Driver Registration & Status
+
+Complete the registration flow:
+- Name: `Test Driver`
+- Phone: `+94771234567`
+- Vehicle: `Car`
+- Seats: `4`
+- Plate: `TEST-001`
+
+✅ Bot confirms: *"Your profile is pending admin approval."*
+
+**Approve yourself (you are the admin):**
+```
+/admin_drivers     ← note your driver ID (e.g. 1)
+/approve 1
+```
+✅ You receive: *"Your account has been approved!"*
+
+**Test status buttons:**
+1. Tap **🟢 Go Online** → bot asks to share live location
+2. Share live location via 📎 → Location → Share Live Location
+3. ✅ Bot confirms: *"Location received! You are now visible to riders."*
+4. Tap **🟡 Busy** → ✅ status changes
+5. Tap **🔴 Go Offline** → ✅ status changes
+
+**DB check:**
+```sql
+SELECT id, name, status, is_approved,
+       ST_AsText(location::geometry) AS coords,
+       location_updated_at
+FROM drivers WHERE id = 1;
+-- coords should be populated, location_updated_at should be recent
+```
+
+---
+
+### Stage 3 — Rider Search
+
+With seed data inserted (or a real driver online), switch to your rider account:
+
+1. Tap **🔍 Find Drivers**
+2. Tap 📎 → Location → **Send Your Current Location**
+3. ✅ Results appear immediately, sorted by distance, with **All · Car · Tuk · Van · SUV** filter buttons
+
+**Verify correctness:**
+- Sunil (0.4 km) appears before Kasun (1.1 km) — ✅ sorted ascending
+- Roshan (busy) does NOT appear — ✅ only `available` shown
+- Pending Driver does NOT appear — ✅ unapproved excluded
+- Offline Driver does NOT appear — ✅ offline excluded
+
+**Test vehicle filter:**
+- Tap **🛺 Tuk** → ✅ only Kasun Silva shown
+- Tap **All** → ✅ all available drivers shown again (no new location share needed)
+
+**DB check:**
+```sql
+-- Manually verify distance calculation for your location
+SELECT name,
+       ROUND(ST_Distance(
+         location,
+         ST_MakePoint(79.8503, 6.9355)::geography  -- replace with your coords
+       )::numeric / 1000, 2) AS distance_km
+FROM drivers
+WHERE status = 'available' AND is_approved = true AND is_enabled = true
+ORDER BY distance_km;
+```
+
+---
+
+### Stage 4 — Referral System
+
+1. As a driver, tap **🔗 Invite Drivers** → copy the invite link
+2. Open the link in a browser or send to a second Telegram account
+3. The second account goes through registration
+4. ✅ After the second driver registers, tap **👤 My Profile** → referral count shows `1`
+
+**DB check:**
+```sql
+SELECT
+  r.referrer_driver_id,
+  d1.name AS referrer,
+  d2.name AS referred
+FROM referrals r
+JOIN drivers d1 ON d1.id = r.referrer_driver_id
+JOIN drivers d2 ON d2.id = r.referred_driver_id;
+```
+
+---
+
+### Stage 5 — Admin Commands
+
+Run all commands from your admin account:
+
+| Command | Expected result |
+|---------|----------------|
+| `/admin_help` | Lists all 6 commands |
+| `/admin_drivers` | Shows all registered drivers with IDs and status |
+| `/approve 1` | Driver notified, can go online |
+| `/disable 1` | Driver set offline, hidden from search, notified |
+| `/enable 1` | Driver re-enabled, notified |
+| `/broadcast Hello!` | All drivers receive "Hello!", bot reports delivered/failed count |
+
+**Verify disable hides driver from search:**
+1. `/disable 1`
+2. As rider, share location → driver should NOT appear in results
+3. `/enable 1` → driver reappears after going online again
+
+---
+
+### Stage 6 — Profile Editing
+
+1. As a driver, tap **✏️ Edit Profile**
+2. ✅ Inline keyboard shows: Name · Phone · Vehicle Type · Seats · Plate Number
+3. Tap **Seats** → enter `2` → ✅ updated
+4. Tap **👤 My Profile** → ✅ seats now shows `2`
+
+**DB check:**
+```sql
+SELECT name, phone, vehicle_type, seats, vehicle_number FROM drivers WHERE id = 1;
+```
+
+---
+
+### Stage 7 — Location Expiry (Background Jobs)
+
+The background job runs every 15 minutes. To test it immediately, manually expire a driver's location:
+
+```sql
+-- Simulate expired location
+UPDATE drivers
+SET location_updated_at = NOW() - INTERVAL '2 hours'
+WHERE id = 1;
+```
+
+Then as a rider, search for drivers → ✅ the driver no longer appears.
+
+Wait up to 15 minutes (or restart the bot to trigger the first job run sooner) → ✅ driver receives *"Your live location has expired"* notification and status is set to `offline`.
+
+To test the reminder notification, simulate being 7 hours into a live location share:
+```sql
+UPDATE drivers
+SET location_share_started_at = NOW() - INTERVAL '7 hours'
+WHERE id = 1;
+```
+Wait up to 15 minutes → ✅ driver receives the 1-hour warning.
+
+---
+
 ## Setup Instructions
 
 ### Prerequisites
