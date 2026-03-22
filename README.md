@@ -100,6 +100,184 @@ src/
 
 ---
 
+## How It Works
+
+### For Drivers
+
+**First time — Registration**
+
+1. Open the bot and send `/start`
+2. Tap **🚗 I am a Driver**
+3. The bot walks you through registration step by step:
+   - Your full name
+   - Phone number with country code (e.g. `+94771234567`)
+   - Vehicle type (Car / Tuk / Van / SUV)
+   - Number of seats
+   - Vehicle plate number
+4. After registration you will see: *"Your profile is pending admin approval."*
+5. Once an admin approves you, you receive a notification and can go online
+
+**Daily use — Going online**
+
+1. Tap **🟢 Go Online**
+2. The bot asks you to share your live location
+3. In the Telegram mobile app: tap the 📎 attachment icon → **Location** → **Share Live Location** → select duration (up to 8 hours)
+4. You are now visible to riders — Telegram updates your location automatically every ~30 seconds in the background
+
+**Status buttons**
+
+| Button | What it does |
+|--------|-------------|
+| 🟢 Go Online | Makes you visible to riders — requires live location share |
+| 🟡 Busy | Hides you from rider search while you are on a trip |
+| 🔴 Go Offline | Hides you from rider search entirely |
+| 👤 My Profile | Shows your registration details, current status, and referral count |
+| 🔗 Invite Drivers | Gives you a personal invite link to share with other drivers |
+
+**Location expiry**
+
+- Your live location lasts up to 8 hours (Telegram limit)
+- You receive a reminder notification ~1 hour before it expires
+- If it expires without renewal, your status is automatically set to Offline and you are notified
+- To become visible again, tap **🟢 Go Online** and re-share your live location
+
+**Invite other drivers**
+
+- Tap **🔗 Invite Drivers** to get your personal referral link
+- Share the link with other drivers — when they register via your link, they are counted as your referral
+- View your referral count anytime in **👤 My Profile**
+
+---
+
+### For Riders
+
+No registration required. Just start the bot and search.
+
+1. Send `/start` and tap **🙋 I am a Rider**
+2. Tap **🔍 Find Drivers**
+3. The bot asks you to share your location — tap the 📎 attachment icon → **Location** → **Send Your Current Location**
+4. You instantly see the nearest available drivers sorted by distance:
+
+```
+Drivers near you (All):
+
+1. Sunil – 0.6 km
+   🚗 Car | Seats: 4
+   📞 Call | 💬 WhatsApp
+
+2. Kasun – 1.2 km
+   🛺 Tuk | Seats: 3
+   📞 Call | 💬 WhatsApp
+```
+
+5. Tap **📞 Call** or **💬 WhatsApp** to contact the driver directly
+6. Use the filter buttons to narrow by vehicle type: **All · Car · Tuk · Van · SUV** — filtering re-uses your shared location, no need to share it again
+
+**Important:** The bot shows only drivers who are currently online and have shared their live location recently. If no drivers appear, try again in a few minutes.
+
+---
+
+### For Admins
+
+Your Telegram user ID must be listed in the `ADMIN_IDS` environment variable. All commands are sent directly in your bot chat — they are silently blocked for non-admin users.
+
+**Typical workflow**
+
+```
+New driver registers
+       │
+       ▼
+/admin_drivers          ← see the new driver and their ID
+       │
+       ▼
+/approve <id>           ← driver is notified and can go online
+       │
+       ▼
+(monitor ongoing)
+       │
+  ┌────┴────┐
+  ▼         ▼
+/disable   /enable      ← if a driver causes issues or returns
+```
+
+**Command reference**
+
+---
+
+#### `/admin_help`
+Lists all available admin commands in the chat. Use this as a quick reference at any time.
+
+---
+
+#### `/admin_drivers`
+Shows all registered drivers with their current state.
+
+```
+Registered Drivers (3)
+
+[1] Sunil | CAR | available | ✅
+[2] Kasun | TUK | offline   | ✅
+[3] Priya | VAN | offline   | ⏳
+```
+
+Column meanings:
+- `[id]` — the ID used in all other commands
+- `available / busy / offline` — current status
+- `✅` — approved and enabled
+- `⏳` — registered but not yet approved
+- `🚫` — disabled
+
+---
+
+#### `/approve <id>`
+
+Approves a pending driver. They receive an instant notification and can immediately tap **🟢 Go Online**.
+
+```
+/approve 3
+```
+
+> Use `/admin_drivers` first to get the correct ID.
+
+---
+
+#### `/disable <id>`
+
+Disables a driver. Their status is immediately set to Offline and they disappear from all rider searches. The driver receives a notification. Use this for drivers who violate rules or need to be suspended.
+
+```
+/disable 2
+```
+
+A disabled driver cannot go online until re-enabled. They see *"Your account has been disabled"* when they try.
+
+---
+
+#### `/enable <id>`
+
+Re-enables a previously disabled driver. They receive a notification and can go online again.
+
+```
+/enable 2
+```
+
+---
+
+#### `/broadcast <message>`
+
+Sends a message to every registered driver. Useful for announcements, rule reminders, or service updates. The bot reports how many messages were delivered and how many failed (e.g. drivers who have blocked the bot).
+
+```
+/broadcast Tomorrow the service will be unavailable from 2–4pm for maintenance.
+```
+
+```
+📢 Broadcast complete.
+Delivered: 12 | Failed: 1
+```
+
+---
+
 ## Setup Instructions
 
 ### Prerequisites
