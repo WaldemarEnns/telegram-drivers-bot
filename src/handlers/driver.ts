@@ -22,8 +22,8 @@ async function registerDriverConversation(
 ): Promise<void> {
   // Step 1: Name
   await ctx.reply('What is your full name?');
-  const nameCtx = await conversation.wait();
-  const name = nameCtx.message?.text?.trim();
+  const nameCtx = await conversation.waitFor(':text');
+  const name = nameCtx.message!.text!.trim();
   if (!name) {
     await ctx.reply('Registration cancelled. Send /start to try again.');
     return;
@@ -31,8 +31,8 @@ async function registerDriverConversation(
 
   // Step 2: Phone
   await ctx.reply('Enter your phone number with country code (e.g. +94771234567):');
-  const phoneCtx = await conversation.wait();
-  const phone = phoneCtx.message?.text?.trim();
+  const phoneCtx = await conversation.waitFor(':text');
+  const phone = phoneCtx.message!.text!.trim();
   if (!phone || !/^\+\d{7,15}$/.test(phone)) {
     await ctx.reply(
       'Invalid phone number. Must start with + followed by 7–15 digits.\nSend /start to try again.'
@@ -48,9 +48,9 @@ async function registerDriverConversation(
 
   // Step 4: Seats
   await ctx.reply('How many seats does your vehicle have? (1–20)');
-  const seatsCtx = await conversation.wait();
-  const seatsRaw = seatsCtx.message?.text?.trim();
-  const seats = parseInt(seatsRaw ?? '', 10);
+  const seatsCtx = await conversation.waitFor(':text');
+  const seatsRaw = seatsCtx.message!.text!.trim();
+  const seats = parseInt(seatsRaw, 10);
   if (isNaN(seats) || seats < 1 || seats > 20) {
     await ctx.reply('Invalid seat count. Must be a number between 1 and 20.\nSend /start to try again.');
     return;
@@ -58,8 +58,8 @@ async function registerDriverConversation(
 
   // Step 5: Plate number
   await ctx.reply('Enter your vehicle plate number:');
-  const plateCtx = await conversation.wait();
-  const vehicleNumber = plateCtx.message?.text?.trim();
+  const plateCtx = await conversation.waitFor(':text');
+  const vehicleNumber = plateCtx.message!.text!.trim();
   if (!vehicleNumber) {
     await ctx.reply('Registration cancelled. Send /start to try again.');
     return;
@@ -125,11 +125,11 @@ async function editProfileConversation(
   }
 
   await ctx.reply(`Enter your new ${fieldLabels[field] ?? field}:`);
-  const valueCtx = await conversation.wait();
-  const raw = valueCtx.message?.text?.trim();
+  const valueCtx = await conversation.waitFor(':text');
+  const raw = valueCtx.message!.text!.trim();
 
   if (!raw) {
-    await ctx.reply('No value received. Edit cancelled.', { reply_markup: driverMenuKeyboard });
+    await ctx.reply('Edit cancelled.', { reply_markup: driverMenuKeyboard });
     return;
   }
 
