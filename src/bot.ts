@@ -74,18 +74,15 @@ async function main(): Promise<void> {
 
   // 9. Global error handler — individual failures must not crash the bot
   bot.catch((err) => {
-    console.error('Handler error:', err.error);
     const ctx = err.ctx;
     ctx.reply('Something went wrong. Please try again.').catch(() => {});
   });
 
   startBackgroundJobs(bot.api);
-  console.log('Bot starting...');
   await bot.start();
-  console.log('Bot started.');
 }
 
 main().catch((err) => {
-  console.error('Fatal startup error:', err);
+  process.stderr.write(`Fatal startup error: ${err}\n`);
   process.exit(1);
 });
