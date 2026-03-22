@@ -1,6 +1,6 @@
 import type { Bot, MiddlewareFn } from 'grammy';
 import type { BotContext } from '../types';
-import { getAll, approve, disable, enable, findById } from '../services/drivers';
+import { getAll, approve, disable, enable } from '../services/drivers';
 
 export function registerAdminHandlers(
   bot: Bot<BotContext>,
@@ -113,6 +113,3 @@ export function registerAdminHandlers(
     await ctx.reply(`📢 Broadcast complete.\nDelivered: ${ok} | Failed: ${fail}`);
   });
 }
-
-// Keep findById available for potential future use — suppress unused import warning
-void findById;
