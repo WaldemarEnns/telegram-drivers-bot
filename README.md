@@ -299,51 +299,51 @@ INSERT INTO drivers (
   status, location, location_updated_at, location_share_started_at,
   is_approved, is_enabled, referral_code
 ) VALUES
-  -- 0.4 km north of Colombo Fort (6.9355, 79.8503)
-  (1000000001, 'Sunil Perera',  '+94711000001', 'car', 4, 'CAB-1001',
+  -- ~0 km — Rastatt city centre
+  (1000000001, 'Sunil Perera',       '+94711000001', 'car', 4, 'CAB-1001',
    'available',
-   ST_MakePoint(79.8503, 6.9355)::geography, NOW(), NOW(),
+   ST_MakePoint(8.2030, 48.8578)::geography, NOW(), NOW(),
    true, true, 'seed0001'),
 
-  -- 1.1 km away
-  (1000000002, 'Kasun Silva',   '+94711000002', 'tuk', 3, 'TUK-2002',
+  -- ~0.6 km away
+  (1000000002, 'Kasun Silva',        '+94711000002', 'tuk', 3, 'TUK-2002',
    'available',
-   ST_MakePoint(79.8580, 6.9310)::geography, NOW(), NOW(),
+   ST_MakePoint(8.2100, 48.8610)::geography, NOW(), NOW(),
    true, true, 'seed0002'),
 
-  -- 2.3 km away
-  (1000000003, 'Priya Fernando','+94711000003', 'van', 6, 'VAN-3003',
+  -- ~1.5 km away
+  (1000000003, 'Priya Fernando',     '+94711000003', 'van', 6, 'VAN-3003',
    'available',
-   ST_MakePoint(79.8650, 6.9200)::geography, NOW(), NOW(),
+   ST_MakePoint(8.2200, 48.8650)::geography, NOW(), NOW(),
    true, true, 'seed0003'),
 
-  -- 4.8 km away
-  (1000000004, 'Nimal Jayawardena','+94711000004', 'suv', 5, 'SUV-4004',
+  -- ~3.2 km away
+  (1000000004, 'Nimal Jayawardena',  '+94711000004', 'suv', 5, 'SUV-4004',
    'available',
-   ST_MakePoint(79.8900, 6.9100)::geography, NOW(), NOW(),
+   ST_MakePoint(8.2400, 48.8720)::geography, NOW(), NOW(),
    true, true, 'seed0004'),
 
-  -- 8.9 km away — near the search radius edge (default 10 km)
-  (1000000005, 'Roshan de Mel', '+94711000005', 'car', 4, 'CAB-5005',
+  -- ~5.8 km away — busy, must NOT appear in search
+  (1000000005, 'Roshan de Mel',      '+94711000005', 'car', 4, 'CAB-5005',
    'busy',
-   ST_MakePoint(79.9300, 6.8800)::geography, NOW(), NOW(),
+   ST_MakePoint(8.2700, 48.8800)::geography, NOW(), NOW(),
    true, true, 'seed0005'),
 
   -- Unapproved — must NOT appear in search
-  (1000000006, 'Pending Driver', '+94711000006', 'car', 4, 'CAB-6006',
+  (1000000006, 'Pending Driver',     '+94711000006', 'car', 4, 'CAB-6006',
    'available',
-   ST_MakePoint(79.8510, 6.9350)::geography, NOW(), NOW(),
+   ST_MakePoint(8.2040, 48.8585)::geography, NOW(), NOW(),
    false, true, 'seed0006'),
 
   -- Offline — must NOT appear in search
-  (1000000007, 'Offline Driver', '+94711000007', 'tuk', 2, 'TUK-7007',
+  (1000000007, 'Offline Driver',     '+94711000007', 'tuk', 2, 'TUK-7007',
    'offline',
-   ST_MakePoint(79.8520, 6.9340)::geography, NOW(), NOW(),
+   ST_MakePoint(8.2050, 48.8590)::geography, NOW(), NOW(),
    true, true, 'seed0007')
 ON CONFLICT (telegram_id) DO NOTHING;
 ```
 
-> The coordinates above are centred around Colombo Fort, Sri Lanka. To use your own area, replace `79.8503, 6.9355` with your `longitude, latitude` and adjust the offsets for the other drivers.
+> The coordinates above are centred around Rastatt, Baden-Württemberg, Germany. To use your own area, replace `8.2030, 48.8578` with your `longitude, latitude` and adjust the offsets for the other drivers.
 
 **To keep seed data fresh** (prevent expiry):
 ```sql
@@ -434,7 +434,7 @@ With seed data inserted (or a real driver online), switch to your rider account:
 SELECT name,
        ROUND(ST_Distance(
          location,
-         ST_MakePoint(79.8503, 6.9355)::geography  -- replace with your coords
+         ST_MakePoint(8.2030, 48.8578)::geography  -- replace with your coords
        )::numeric / 1000, 2) AS distance_km
 FROM drivers
 WHERE status = 'available' AND is_approved = true AND is_enabled = true
