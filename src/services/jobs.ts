@@ -9,7 +9,7 @@ interface AffectedDriver {
   name: string;
 }
 
-async function resetExpiredDrivers(api: Api): Promise<void> {
+export async function resetExpiredDrivers(api: Api): Promise<void> {
   const { rows } = await pool.query<AffectedDriver>(
     `UPDATE drivers
      SET status = 'offline'
@@ -28,7 +28,7 @@ async function resetExpiredDrivers(api: Api): Promise<void> {
   }
 }
 
-async function sendExpiryReminders(api: Api): Promise<void> {
+export async function sendExpiryReminders(api: Api): Promise<void> {
   // Remind drivers whose live location was started between 6h30m and 7h30m ago
   // (i.e. ~1 hour before Telegram's 8h live location window ends)
   const { rows } = await pool.query<AffectedDriver>(
