@@ -39,7 +39,7 @@ export async function findNearbyDrivers(
        ROUND(ST_Distance(
          d.location,
          ST_MakePoint($1, $2)::geography
-       )::numeric, 0) AS distance_m
+       )::numeric, 0)::float8 AS distance_m
      FROM drivers d
      WHERE d.status = 'available'
        AND d.is_approved = true

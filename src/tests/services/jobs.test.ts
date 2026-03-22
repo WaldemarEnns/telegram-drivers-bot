@@ -134,4 +134,19 @@ describe('sendExpiryReminders', () => {
     await sendExpiryReminders(api);
     expect(sentMessages).toHaveLength(0);
   });
+
+  it('does not notify drivers past the reminder window', async () => {
+    const d = await createTestDriver();
+    await approve(d.id);
+    await pool.query(
+      `UPDATE drivers
+       SET status = 'available',
+           location_share_started_at = NOW() - INTERVAL '8 hours 30 minutes'
+       WHERE telegram_id = $1`,
+      [d.telegram_id]
+    );
+
+    await sendExpiryReminders(api);
+    expect(sentMessages).toHaveLength(0);
+  });
 });

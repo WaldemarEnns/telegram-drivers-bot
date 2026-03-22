@@ -58,7 +58,7 @@ describe('location', () => {
       await seedAvailableDriver();
       const results = await findNearbyDrivers(LNG, LAT, null);
       expect(results).toHaveLength(1);
-      expect(Number(results[0].distance_m)).toBeLessThanOrEqual(10);
+      expect(results[0].distance_m).toBeLessThanOrEqual(10);
     });
 
     it('excludes drivers beyond the search radius', async () => {
@@ -88,6 +88,14 @@ describe('location', () => {
       const d = await createTestDriver();
       await approve(d.id);
       // status stays 'offline' by default
+      await updateDriverLocation(d.telegram_id, LNG, LAT);
+      expect(await findNearbyDrivers(LNG, LAT, null)).toHaveLength(0);
+    });
+
+    it('excludes busy drivers', async () => {
+      const d = await createTestDriver();
+      await approve(d.id);
+      await updateStatus(d.telegram_id, 'busy');
       await updateDriverLocation(d.telegram_id, LNG, LAT);
       expect(await findNearbyDrivers(LNG, LAT, null)).toHaveLength(0);
     });
@@ -125,13 +133,13 @@ describe('location', () => {
       await seedAvailableDriver(LNG + 0.02, LAT); // further east
       await seedAvailableDriver(LNG, LAT);         // same point as query
       const results = await findNearbyDrivers(LNG, LAT, null);
-      expect(Number(results[0].distance_m)).toBeLessThanOrEqual(Number(results[1].distance_m));
+      expect(results[0].distance_m).toBeLessThanOrEqual(results[1].distance_m);
     });
 
     it('returns distance_m as a number', async () => {
       await seedAvailableDriver();
       const results = await findNearbyDrivers(LNG, LAT, null);
-      expect(Number.isFinite(Number(results[0].distance_m))).toBe(true);
+      expect(Number.isFinite(results[0].distance_m)).toBe(true);
     });
   });
 });
