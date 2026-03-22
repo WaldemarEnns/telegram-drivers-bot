@@ -155,7 +155,7 @@ No registration required. Just start the bot and search.
 
 1. Send `/start` and tap **🙋 I am a Rider**
 2. Tap **🔍 Find Drivers**
-3. The bot asks you to share your location — tap the 📎 attachment icon → **Location** → **Send Your Current Location**
+3. Tap **📍 Share My Location** — a one-tap location button in the keyboard
 4. You instantly see the nearest available drivers sorted by distance:
 
 ```
@@ -415,7 +415,7 @@ FROM drivers WHERE id = 1;
 With seed data inserted (or a real driver online), switch to your rider account:
 
 1. Tap **🔍 Find Drivers**
-2. Tap 📎 → Location → **Send Your Current Location**
+2. Tap **📍 Share My Location** (keyboard button)
 3. ✅ Results appear immediately, sorted by distance, with **All · Car · Tuk · Van · SUV** filter buttons
 
 **Verify correctness:**

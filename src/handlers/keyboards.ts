@@ -15,7 +15,8 @@ export const driverMenuKeyboard = new Keyboard()
   .resized();
 
 export const riderMenuKeyboard = new Keyboard()
-  .text('🔍 Find Drivers')
+  .text('🔍 Find Drivers').row()
+  .requestLocation('📍 Share My Location')
   .resized();
 
 export const requestLiveLocationKeyboard = new Keyboard()

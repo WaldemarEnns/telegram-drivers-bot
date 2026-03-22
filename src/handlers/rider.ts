@@ -44,10 +44,10 @@ export function registerRiderHandlers(bot: Bot<BotContext>): void {
   });
 
   bot.hears('🔍 Find Drivers', async (ctx) => {
-    await ctx.reply(
-      'Tap the 📎 attachment icon → *Location* → *Send Your Current Location*.',
-      { parse_mode: 'Markdown', reply_markup: riderMenuKeyboard }
-    );
+    await ctx.reply('Tap *📍 Share My Location* below to find nearby drivers.', {
+      parse_mode: 'Markdown',
+      reply_markup: riderMenuKeyboard,
+    });
   });
 
   // Rider location — search all types immediately, show filter buttons with results
