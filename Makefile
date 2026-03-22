@@ -1,4 +1,4 @@
-.PHONY: help install build dev up down restart logs logs-db shell-bot shell-db adminer seed reset
+.PHONY: help install build dev up down restart logs logs-db shell-bot shell-db adminer seed reset test test-watch test-coverage test-db-create test-db-drop shell-test-db
 
 # Default target
 help:
@@ -24,6 +24,14 @@ help:
 	@echo "Local dev (no Docker)"
 	@echo "  dev            Run bot directly with ts-node (requires local Postgres)"
 	@echo "  shell-bot      Open a shell in the running bot container"
+	@echo ""
+	@echo "Testing (requires db container running)"
+	@echo "  test           Run all tests once"
+	@echo "  test-watch     Re-run tests on file change"
+	@echo "  test-coverage  Run tests with coverage report"
+	@echo "  test-db-create Create taxi_bot_test database manually"
+	@echo "  test-db-drop   Drop taxi_bot_test database"
+	@echo "  shell-test-db  Open psql session in taxi_bot_test"
 
 # ── Setup ────────────────────────────────────────────────────────────────────
 
@@ -78,3 +86,26 @@ reset:
 
 dev:
 	npm run dev
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+
+test:
+	@echo "Requires db container: make up"
+	npx vitest run
+
+test-watch:
+	npx vitest
+
+test-coverage:
+	npx vitest run --coverage
+
+test-db-create:
+	docker exec -i taxi-bot-db psql -U taxibot -d taxi_bot \
+	  -c "CREATE DATABASE taxi_bot_test OWNER taxibot;" || true
+
+test-db-drop:
+	docker exec -i taxi-bot-db psql -U taxibot -d taxi_bot \
+	  -c "DROP DATABASE IF EXISTS taxi_bot_test;"
+
+shell-test-db:
+	docker exec -it taxi-bot-db psql -U taxibot -d taxi_bot_test
