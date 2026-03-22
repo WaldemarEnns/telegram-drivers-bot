@@ -528,13 +528,14 @@ Wait up to 15 minutes → ✅ driver receives the 1-hour warning.
 
 - Node.js 22+
 - Docker and Docker Compose
+- `make` (pre-installed on macOS/Linux)
 
 ### 1. Clone and install
 
 ```bash
 git clone <repo_url>
 cd telegram-drivers-bot
-npm install
+make install
 ```
 
 ### 2. Create your Telegram bot
@@ -560,6 +561,28 @@ ADMIN_IDS=your_telegram_user_id
 
 ---
 
+## Makefile Reference
+
+All common operations are available via `make`. Run `make help` to list all targets.
+
+| Target | Description |
+|--------|-------------|
+| `make install` | Install npm dependencies |
+| `make build` | Compile TypeScript → `dist/` |
+| `make up` | Start all containers (db + bot + Adminer) |
+| `make down` | Stop and remove containers |
+| `make restart` | Rebuild bot image and restart it (after code changes) |
+| `make logs` | Tail bot logs |
+| `make logs-db` | Tail database logs |
+| `make shell-db` | Open a `psql` session in the database container |
+| `make adminer` | Print Adminer login details |
+| `make seed` | Insert test drivers around Rastatt, Germany |
+| `make reset` | Delete seed drivers and re-insert them |
+| `make dev` | Run bot directly with `ts-node` (requires local Postgres) |
+| `make shell-bot` | Open a shell in the running bot container |
+
+---
+
 ## Deployment with Docker Compose
 
 ### Development (with Adminer)
@@ -567,17 +590,17 @@ ADMIN_IDS=your_telegram_user_id
 Starts PostgreSQL/PostGIS, the bot, and Adminer (database admin UI at `http://localhost:8080`).
 
 ```bash
-docker compose up -d --build
+make up
 ```
 
 **Verify everything is running:**
 
 ```bash
 docker compose ps
-docker compose logs -f bot
+make logs
 ```
 
-**Adminer login** — open `http://localhost:8080`:
+**Adminer login** — run `make adminer` for the connection details, or open `http://localhost:8080`:
 - System: `PostgreSQL`
 - Server: `db`
 - Username: `taxibot`
@@ -595,14 +618,14 @@ The production compose file excludes Adminer and does not expose the database po
 ### Stopping
 
 ```bash
-docker compose down          # stop containers, keep data
+make down                    # stop containers, keep data
 docker compose down -v       # stop containers and delete database volume
 ```
 
 ### Rebuilding after code changes
 
 ```bash
-docker compose up -d --build bot
+make restart
 ```
 
 ---

@@ -4,7 +4,7 @@
   "description": "Telegram bot connecting riders with nearby drivers",
   "main": "dist/bot.js",
   "scripts": {
-    "build": "tsc && cp src/db/migrations.sql dist/db/",
+    "build": "tsc && cp src/db/migrations.sql src/db/seed.sql dist/db/",
     "start": "node dist/bot.js",
     "dev": "ts-node src/bot.ts",
     "migrate": "ts-node src/db/migrate.ts"
