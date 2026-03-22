@@ -98,6 +98,35 @@ export async function enable(driverId: number): Promise<Driver | null> {
   return rows[0] ?? null;
 }
 
+export interface DriverUpdate {
+  name?: string;
+  phone?: string;
+  vehicle_type?: VehicleType;
+  seats?: number;
+  vehicle_number?: string;
+}
+
+export async function updateDriver(telegramId: number, fields: DriverUpdate): Promise<Driver | null> {
+  const setClauses: string[] = [];
+  const values: unknown[] = [];
+  let idx = 1;
+
+  if (fields.name !== undefined)           { setClauses.push(`name = $${idx++}`);           values.push(fields.name); }
+  if (fields.phone !== undefined)          { setClauses.push(`phone = $${idx++}`);          values.push(fields.phone); }
+  if (fields.vehicle_type !== undefined)   { setClauses.push(`vehicle_type = $${idx++}`);   values.push(fields.vehicle_type); }
+  if (fields.seats !== undefined)          { setClauses.push(`seats = $${idx++}`);          values.push(fields.seats); }
+  if (fields.vehicle_number !== undefined) { setClauses.push(`vehicle_number = $${idx++}`); values.push(fields.vehicle_number); }
+
+  if (!setClauses.length) return null;
+  values.push(telegramId);
+
+  const { rows } = await pool.query<Driver>(
+    `UPDATE drivers SET ${setClauses.join(', ')} WHERE telegram_id = $${idx} RETURNING *`,
+    values
+  );
+  return rows[0] ?? null;
+}
+
 export async function getAll(): Promise<Driver[]> {
   const { rows } = await pool.query<Driver>(
     'SELECT id, telegram_id, name, status, is_approved, is_enabled, vehicle_type FROM drivers ORDER BY id'

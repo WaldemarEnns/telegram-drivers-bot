@@ -11,7 +11,7 @@ export const roleSelectionKeyboard = new Keyboard()
 export const driverMenuKeyboard = new Keyboard()
   .text('🟢 Go Online').text('🟡 Busy').row()
   .text('🔴 Go Offline').text('👤 My Profile').row()
-  .text('🔗 Invite Drivers')
+  .text('✏️ Edit Profile').text('🔗 Invite Drivers')
   .resized();
 
 export const riderMenuKeyboard = new Keyboard()
@@ -27,6 +27,11 @@ export const requestOneTimeLocationKeyboard = new Keyboard()
   .requestLocation('📍 Share My Location')
   .resized()
   .oneTime();
+
+export const editProfileKeyboard = new InlineKeyboard()
+  .text('Name', 'edit:name').text('Phone', 'edit:phone').row()
+  .text('Vehicle Type', 'edit:vehicle_type').text('Seats', 'edit:seats').row()
+  .text('Plate Number', 'edit:vehicle_number');
 
 export const vehicleTypeKeyboard = new InlineKeyboard()
   .text('🚗 Car', 'vtype:car').text('🛺 Tuk', 'vtype:tuk').row()

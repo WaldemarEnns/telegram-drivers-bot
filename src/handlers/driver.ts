@@ -5,9 +5,10 @@ import {
   driverMenuKeyboard,
   requestLiveLocationKeyboard,
   vehicleTypeKeyboard,
+  editProfileKeyboard,
   formatDriverProfile,
 } from './keyboards';
-import { create, updateStatus } from '../services/drivers';
+import { create, updateStatus, updateDriver } from '../services/drivers';
 import { updateDriverLocation } from '../services/location';
 import { generateCode, createReferral, getReferralCount, getInviteLink } from '../services/referral';
 import type { VehicleType } from '../services/drivers';
@@ -93,8 +94,68 @@ async function registerDriverConversation(
   );
 }
 
+async function editProfileConversation(
+  conversation: DriverConversation,
+  ctx: BotContext
+): Promise<void> {
+  await ctx.reply('Which field would you like to edit?', { reply_markup: editProfileKeyboard });
+
+  const fieldCtx = await conversation.waitFor('callback_query:data');
+  await fieldCtx.answerCallbackQuery();
+  const field = fieldCtx.callbackQuery.data.replace('edit:', '');
+
+  const fieldLabels: Record<string, string> = {
+    name: 'full name',
+    phone: 'phone number (e.g. +94771234567)',
+    vehicle_type: 'vehicle type',
+    seats: 'number of seats (1–20)',
+    vehicle_number: 'plate number',
+  };
+
+  if (field === 'vehicle_type') {
+    await ctx.reply('Select your new vehicle type:', { reply_markup: vehicleTypeKeyboard });
+    const vtypeCtx = await conversation.waitFor('callback_query:data');
+    await vtypeCtx.answerCallbackQuery();
+    const vehicleType = vtypeCtx.callbackQuery.data.replace('vtype:', '') as VehicleType;
+    await conversation.external(() =>
+      updateDriver(ctx.from!.id, { vehicle_type: vehicleType })
+    );
+    await ctx.reply(`✅ Vehicle type updated to ${vehicleType}.`, { reply_markup: driverMenuKeyboard });
+    return;
+  }
+
+  await ctx.reply(`Enter your new ${fieldLabels[field] ?? field}:`);
+  const valueCtx = await conversation.wait();
+  const raw = valueCtx.message?.text?.trim();
+
+  if (!raw) {
+    await ctx.reply('No value received. Edit cancelled.', { reply_markup: driverMenuKeyboard });
+    return;
+  }
+
+  if (field === 'phone' && !/^\+\d{7,15}$/.test(raw)) {
+    await ctx.reply('Invalid phone number. Must start with + followed by 7–15 digits.\nEdit cancelled.', { reply_markup: driverMenuKeyboard });
+    return;
+  }
+
+  if (field === 'seats') {
+    const seats = parseInt(raw, 10);
+    if (isNaN(seats) || seats < 1 || seats > 20) {
+      await ctx.reply('Invalid seat count. Must be between 1 and 20.\nEdit cancelled.', { reply_markup: driverMenuKeyboard });
+      return;
+    }
+    await conversation.external(() => updateDriver(ctx.from!.id, { seats }));
+    await ctx.reply(`✅ Seats updated to ${seats}.`, { reply_markup: driverMenuKeyboard });
+    return;
+  }
+
+  await conversation.external(() => updateDriver(ctx.from!.id, { [field]: raw }));
+  await ctx.reply(`✅ ${fieldLabels[field] ?? field} updated.`, { reply_markup: driverMenuKeyboard });
+}
+
 export function registerDriverHandlers(bot: Bot<BotContext>): void {
   bot.use(createConversation(registerDriverConversation));
+  bot.use(createConversation(editProfileConversation));
 
   bot.hears('🚗 I am a Driver', async (ctx) => {
     if (ctx.driver) {
@@ -139,6 +200,11 @@ export function registerDriverHandlers(bot: Bot<BotContext>): void {
     if (!ctx.driver) return;
     const count = await getReferralCount(ctx.driver.id);
     await ctx.reply(formatDriverProfile(ctx.driver, count), { parse_mode: 'Markdown' });
+  });
+
+  bot.hears('✏️ Edit Profile', async (ctx) => {
+    if (!ctx.driver) return;
+    await ctx.conversation.enter('editProfileConversation');
   });
 
   bot.hears('🔗 Invite Drivers', async (ctx) => {
