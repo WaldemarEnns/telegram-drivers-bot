@@ -9,7 +9,8 @@ import { findNearbyDrivers } from '../services/location';
 import { upsertRider } from '../services/riders';
 import type { VehicleType } from '../services/drivers';
 
-const pendingLocations = new Map<number, { latitude: number; longitude: number }>();
+const TWO_HOURS = 2 * 60 * 60 * 1000;
+const pendingLocations = new Map<number, { latitude: number; longitude: number; setAt: number }>();
 
 async function searchAndReply(
   ctx: BotContext,
@@ -53,7 +54,10 @@ export function registerRiderHandlers(bot: Bot<BotContext>): void {
   // Rider location — search all types immediately, show filter buttons with results
   bot.on('message:location', async (ctx) => {
     const { latitude, longitude } = ctx.message.location;
-    pendingLocations.set(ctx.from.id, { latitude, longitude });
+    for (const [id, loc] of pendingLocations) {
+      if (Date.now() - loc.setAt > TWO_HOURS) pendingLocations.delete(id);
+    }
+    pendingLocations.set(ctx.from.id, { latitude, longitude, setAt: Date.now() });
     await searchAndReply(ctx, longitude, latitude, null);
   });
 
@@ -61,7 +65,7 @@ export function registerRiderHandlers(bot: Bot<BotContext>): void {
   bot.callbackQuery(/^filter:(.+)$/, async (ctx) => {
     await ctx.answerCallbackQuery();
     const loc = pendingLocations.get(ctx.from.id);
-    if (!loc) {
+    if (!loc || Date.now() - loc.setAt > TWO_HOURS) {
       await ctx.reply(
         'Location expired. Tap 📎 → Location to share your position again.',
         { reply_markup: riderMenuKeyboard }
