@@ -278,6 +278,49 @@ Delivered: 12 | Failed: 1
 
 ---
 
+## Automated Tests
+
+The test suite runs against a real PostgreSQL/PostGIS database (`taxi_bot_test`) and uses [MSW](https://mswjs.io/) to intercept Telegram API HTTP calls. There are no mocked DB queries.
+
+### Prerequisites
+
+The `db` Docker container must be running:
+
+```bash
+make up
+```
+
+### Running tests
+
+```bash
+make test              # run all tests once
+make test-watch        # re-run on file change
+make test-coverage     # run with coverage report
+```
+
+### Test database setup
+
+The test database is created automatically on first run via `globalSetup.ts`. If you ever need to manage it manually:
+
+```bash
+make test-db-create    # create taxi_bot_test
+make test-db-drop      # drop taxi_bot_test
+make shell-test-db     # open psql in taxi_bot_test
+```
+
+### What is covered
+
+| File | What is tested |
+|------|---------------|
+| `drivers.test.ts` | All 8 driver service functions (create, approve, disable, enable, update, find, broadcast) |
+| `location.test.ts` | `updateDriverLocation` and `findNearbyDrivers` — all WHERE clause conditions, distance sort, vehicle filter |
+| `jobs.test.ts` | `resetExpiredDrivers` and `sendExpiryReminders` — DB state changes + Telegram API calls via MSW |
+| `referral.test.ts` | Referral code generation, invite link formatting, DB persistence |
+| `riders.test.ts` | `upsertRider` create and update paths |
+| `auth.test.ts` | `loadDriver` and `adminOnly` middleware guard conditions |
+
+---
+
 ## Testing Guide
 
 ### Prerequisites
@@ -580,6 +623,12 @@ All common operations are available via `make`. Run `make help` to list all targ
 | `make reset` | Delete seed drivers and re-insert them |
 | `make dev` | Run bot directly with `ts-node` (requires local Postgres) |
 | `make shell-bot` | Open a shell in the running bot container |
+| `make test` | Run all automated tests once |
+| `make test-watch` | Re-run tests on file change |
+| `make test-coverage` | Run tests with coverage report |
+| `make test-db-create` | Create the `taxi_bot_test` database manually |
+| `make test-db-drop` | Drop the `taxi_bot_test` database |
+| `make shell-test-db` | Open a `psql` session in `taxi_bot_test` |
 
 ---
 
